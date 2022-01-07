@@ -8,18 +8,24 @@ import (
 	"github.com/drop-target-pinball/coroutine"
 )
 
-var playfieldSwitches = []string{
-	"standup target #1",
-	"standup target #2",
-	"standup target #3",
-	"left sling",
-	"right sling",
+type event string
+
+func (e event) Key() interface{} {
+	return e
 }
 
-var drainSwitches = []string{
-	"left outlane",
-	"right outlane",
-	"down the middle",
+var playfieldSwitches = []event{
+	event("standup target #1"),
+	event("standup target #2"),
+	event("standup target #3"),
+	event("left sling"),
+	event("right sling"),
+}
+
+var drainSwitches = []event{
+	event("left outlane"),
+	event("right outlane"),
+	event("down the middle"),
 }
 
 var (
@@ -77,7 +83,7 @@ func watchSlings(co *coroutine.C) {
 	defer fmt.Println("(-) watchSlings: done")
 
 	s := coroutine.NewSequencer()
-	s.WaitFor("left sling", "right sling")
+	s.WaitFor(event("left sling"), event("right sling"))
 	s.Do(func() { awardScore(10) })
 	s.Loop()
 	s.Run(co)
@@ -88,22 +94,22 @@ func watchStandups(co *coroutine.C) {
 	defer fmt.Println("(-) watchStandups: done")
 
 	nLit := 0
-	lit := map[string]bool{
-		"standup target #1": false,
-		"standup target #2": false,
-		"standup target #3": false,
+	lit := map[event]bool{
+		event("standup target #1"): false,
+		event("standup target #2"): false,
+		event("standup target #3"): false,
 	}
 
 	for {
 		evt, done := co.WaitFor(
-			"standup target #1",
-			"standup target #2",
-			"standup target #3",
+			event("standup target #1"),
+			event("standup target #2"),
+			event("standup target #3"),
 		)
 		if done {
 			return
 		}
-		sw := evt.(string)
+		sw := evt.(event)
 		if lit[sw] {
 			awardScore(25)
 			bonus += 10
@@ -133,15 +139,15 @@ func watchExits(co *coroutine.C) {
 	drained := false
 	for !drained {
 		evt, done := co.WaitFor(
-			"left outlane",
-			"right outlane",
-			"down the middle",
+			event("left outlane"),
+			event("right outlane"),
+			event("down the middle"),
 		)
 		if done {
 			return
 		}
 		switch evt {
-		case "left outlane":
+		case event("left outlane"):
 			awardScore(125)
 			if kickback {
 				fmt.Println("*** kickback")
@@ -149,15 +155,15 @@ func watchExits(co *coroutine.C) {
 			} else {
 				drained = true
 			}
-		case "right outlane":
+		case event("right outlane"):
 			awardScore(125)
 			drained = true
-		case "down the middle":
+		case event("down the middle"):
 			drained = true
 		}
 	}
 	fmt.Println("ball drained")
-	coroutine.Post("ball drained")
+	coroutine.Post(event("ball drained"))
 }
 
 func basicMode(co *coroutine.C) {
@@ -170,9 +176,9 @@ func basicMode(co *coroutine.C) {
 	co.New(watchStandups)
 	co.New(watchExits)
 
-	co.WaitFor("ball drained")
+	co.WaitFor(event("ball drained"))
 	fmt.Println("end of ball")
-	coroutine.Post("end of ball")
+	coroutine.Post(event("end of ball"))
 }
 
 func gameMode(co *coroutine.C) {
@@ -180,7 +186,7 @@ func gameMode(co *coroutine.C) {
 	defer fmt.Println("(-) gameMode: done")
 
 	coroutine.New(basicMode)
-	co.WaitFor("end of ball")
+	co.WaitFor(event("end of ball"))
 
 	totalScore := score + bonus
 

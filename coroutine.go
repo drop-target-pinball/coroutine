@@ -6,15 +6,14 @@ import (
 	"github.com/benbjohnson/clock"
 )
 
-type queued struct {
-	key   interface{}
-	event interface{}
+type Event interface {
+	Key() interface{}
 }
 
 type Group struct {
 	clock  clock.Clock
 	active []*C
-	queue  []queued
+	queue  []Event
 }
 
 type C struct {
@@ -29,14 +28,13 @@ type request struct {
 	valid   bool
 	cancel  bool
 	expires time.Time
-	keys    []interface{}
+	events  []Event
 }
 
 type response struct {
 	timeout bool
 	cancel  bool
-	key     interface{}
-	event   interface{}
+	event   Event
 }
 
 func NewGroup() *Group {
@@ -116,18 +114,18 @@ func (c *C) Sleep(d time.Duration) bool {
 	return done
 }
 
-func (c *C) WaitFor(keys ...interface{}) (interface{}, bool) {
-	c.yield <- request{valid: true, keys: keys}
+func (c *C) WaitFor(events ...Event) (Event, bool) {
+	c.yield <- request{valid: true, events: events}
 	return c.waitForResume()
 }
 
-func (c *C) WaitForUntil(d time.Duration, keys ...interface{}) (interface{}, bool) {
+func (c *C) WaitForUntil(d time.Duration, events ...Event) (Event, bool) {
 	expires := c.group.clock.Now().Add(d)
-	c.yield <- request{valid: true, expires: expires, keys: keys}
+	c.yield <- request{valid: true, expires: expires, events: events}
 	return c.waitForResume()
 }
 
-func (c *C) waitForResume() (interface{}, bool) {
+func (c *C) waitForResume() (Event, bool) {
 	response := <-c.resume
 	if response.cancel {
 		return nil, true
@@ -138,12 +136,8 @@ func (c *C) waitForResume() (interface{}, bool) {
 	return response.event, false
 }
 
-func (g *Group) PostWith(key interface{}, event interface{}) {
-	g.queue = append(g.queue, queued{key, event})
-}
-
-func (g *Group) Post(key interface{}) {
-	g.queue = append(g.queue, queued{key, key})
+func (g *Group) Post(evt Event) {
+	g.queue = append(g.queue, evt)
 }
 
 func (g *Group) Tick() {
@@ -171,17 +165,17 @@ func (g *Group) Tick() {
 
 	// Service the queue
 	for len(g.queue) > 0 {
-		var q queued
-		q, g.queue = g.queue[0], g.queue[1:]
+		var evt Event
+		evt, g.queue = g.queue[0], g.queue[1:]
 
 		for _, co := range g.active {
 			if co == nil {
 				continue
 			}
 			// Resume if the requested event key matches
-			for _, keyReq := range co.requesting.keys {
-				if q.key == keyReq {
-					co.resume <- response{key: q.key, event: q.event}
+			for _, evtReq := range co.requesting.events {
+				if evt.Key() == evtReq.Key() {
+					co.resume <- response{event: evt}
 					co.requesting = <-co.yield
 					break
 				}
@@ -232,14 +226,16 @@ func New(fn func(*C)) CancelFunc {
 	return group.NewCoroutine(fn)
 }
 
-func PostWith(key interface{}, event interface{}) {
-	group.PostWith(key, event)
-}
-
-func Post(key interface{}) {
-	group.Post(key)
+func Post(evt Event) {
+	group.Post(evt)
 }
 
 func Tick() {
 	group.Tick()
+}
+
+type testEvent string
+
+func (e testEvent) Key() interface{} {
+	return e
 }

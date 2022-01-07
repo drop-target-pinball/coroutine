@@ -51,16 +51,16 @@ func TestWaitFor(t *testing.T) {
 	cancel := g.NewCoroutine(func(co *C) {
 		s := NewSequencer()
 
-		s.WaitFor("event")
-		s.Do(func() { a = s.Event().(int) })
+		s.WaitFor(testEvent("event"))
+		s.Do(func() { a = 1 })
 
-		s.WaitFor("event")
-		s.Do(func() { a = s.Event().(int) })
+		s.WaitFor(testEvent("event"))
+		s.Do(func() { a = 2 })
 
 		s.Run(co)
 	})
 
-	g.PostWith("event", 1)
+	g.Post(testEvent("event"))
 	g.Tick()
 	if a != 1 {
 		t.Errorf("\n have: %v \n want: %v", a, 1)
@@ -70,7 +70,7 @@ func TestWaitFor(t *testing.T) {
 		t.Errorf("\n have: %v \n want: %v", running, 1)
 	}
 
-	g.PostWith("event", 2)
+	g.Post(testEvent("event"))
 	g.Tick()
 	if a != 2 {
 		t.Errorf("\n have: %v \n want: %v", a, 2)
@@ -90,16 +90,16 @@ func TestWaitForUntil(t *testing.T) {
 	cancel := g.NewCoroutine(func(co *C) {
 		s := NewSequencer()
 
-		s.WaitForUntil(1000*time.Millisecond, "event")
+		s.WaitForUntil(1000*time.Millisecond, testEvent("event"))
 		s.Do(func() { a = 1 })
 
-		s.WaitForUntil(1000*time.Millisecond, "event")
+		s.WaitForUntil(1000*time.Millisecond, testEvent("event"))
 		s.Do(func() { a = 2 })
 
 		s.Run(co)
 	})
 
-	g.Post("event")
+	g.Post(testEvent("event"))
 	g.Tick()
 	if a != 1 {
 		t.Errorf("\n have: %v \n want: %v", a, 1)
@@ -129,16 +129,16 @@ func TestCancel(t *testing.T) {
 	cancel := g.NewCoroutine(func(co *C) {
 		s := NewSequencer()
 
-		s.WaitFor("event")
-		s.Do(func() { a = s.Event().(int) })
+		s.WaitFor(testEvent("event"))
+		s.Do(func() { a = 1 })
 
-		s.WaitFor("event")
-		s.Do(func() { a = s.Event().(int) })
+		s.WaitFor(testEvent("event"))
+		s.Do(func() { a = 2 })
 
 		s.Run(co)
 	})
 
-	g.PostWith("event", 1)
+	g.Post(testEvent("event"))
 	g.Tick()
 	if a != 1 {
 		t.Errorf("\n have: %v \n want: %v", a, 1)
@@ -149,7 +149,7 @@ func TestCancel(t *testing.T) {
 	}
 	cancel()
 
-	g.PostWith("event", 2)
+	g.Post(testEvent("event"))
 	g.Tick()
 	if a != 1 {
 		t.Errorf("\n have: %v \n want: %v", a, 1)
@@ -170,28 +170,28 @@ func TestMulti(t *testing.T) {
 	aCancel := g.NewCoroutine(func(co *C) {
 		s := NewSequencer()
 
-		s.WaitFor("event1")
-		s.Do(func() { a = s.Event().(int) })
+		s.WaitFor(testEvent("event1"))
+		s.Do(func() { a = 1 })
 
-		s.WaitFor("event1")
-		s.Do(func() { a = s.Event().(int) })
+		s.WaitFor(testEvent("event1"))
+		s.Do(func() { a = 2 })
 
 		s.Run(co)
 	})
 	bCancel := g.NewCoroutine(func(co *C) {
 		s := NewSequencer()
 
-		s.WaitFor("event2")
-		s.Do(func() { b = s.Event().(int) })
+		s.WaitFor(testEvent("event2"))
+		s.Do(func() { b = 10 })
 
-		s.WaitFor("event2")
-		s.Do(func() { b = s.Event().(int) })
+		s.WaitFor(testEvent("event2"))
+		s.Do(func() { b = 20 })
 
 		s.Run(co)
 	})
 
-	g.PostWith("event1", 1)
-	g.PostWith("event2", 10)
+	g.Post(testEvent("event1"))
+	g.Post(testEvent("event2"))
 	g.Tick()
 	if a != 1 {
 		t.Errorf("\n have: %v \n want: %v", a, 1)
@@ -204,8 +204,8 @@ func TestMulti(t *testing.T) {
 		t.Errorf("\n have: %v \n want: %v", running, 2)
 	}
 
-	g.PostWith("event1", 2)
-	g.PostWith("event2", 20)
+	g.Post(testEvent("event1"))
+	g.Post(testEvent("event2"))
 	g.Tick()
 	if a != 2 {
 		t.Errorf("\n have: %v \n want: %v", a, 2)
@@ -232,21 +232,21 @@ func TestSub(t *testing.T) {
 		co.New(func(co *C) {
 			s := NewSequencer()
 
-			s.WaitFor("event2")
-			s.Do(func() { b = s.Event().(int) })
+			s.WaitFor(testEvent("event2"))
+			s.Do(func() { b = 10 })
 
-			s.WaitFor("event2")
-			s.Do(func() { b = s.Event().(int) })
+			s.WaitFor(testEvent("event2"))
+			s.Do(func() { b = 20 })
 			s.Run(co)
 		})
 
 		s := NewSequencer()
-		s.WaitFor("event1")
-		s.Do(func() { a = s.Event().(int) })
+		s.WaitFor(testEvent("event1"))
+		s.Do(func() { a = 1 })
 		s.Run(co)
 	})
 
-	g.PostWith("event2", 10)
+	g.Post(testEvent("event2"))
 	g.Tick()
 	if a != 0 {
 		t.Errorf("\n have: %v \n want: %v", a, 0)
@@ -259,7 +259,7 @@ func TestSub(t *testing.T) {
 		t.Errorf("\n have: %v \n want: %v", running, 2)
 	}
 
-	g.PostWith("event2", 20)
+	g.Post(testEvent("event2"))
 	g.Tick()
 	if a != 0 {
 		t.Errorf("\n have: %v \n want: %v", a, 0)
@@ -272,7 +272,7 @@ func TestSub(t *testing.T) {
 		t.Errorf("\n have: %v \n want: %v", running, 1)
 	}
 
-	g.PostWith("event1", 1)
+	g.Post(testEvent("event1"))
 	g.Tick()
 	if a != 1 {
 		t.Errorf("\n have: %v \n want: %v", a, 1)
@@ -303,7 +303,7 @@ func TestSubCancel(t *testing.T) {
 
 			s.Defer(func() { bDef = 1 })
 			s.Do(func() { b = 1 })
-			s.WaitFor("event2")
+			s.WaitFor(testEvent("event2"))
 			s.Do(func() { b = 2 })
 			s.Run(co)
 		})
@@ -311,15 +311,15 @@ func TestSubCancel(t *testing.T) {
 		s := NewSequencer()
 		s.Defer(func() { aDef = 1 })
 		s.Do(func() { a = 1 })
-		s.WaitFor("event1")
+		s.WaitFor(testEvent("event1"))
 		s.Do(func() { a = 2 })
 		s.Run(co)
 	})
 
 	g.Tick()
 	cancel()
-	g.Post("event1")
-	g.Post("event2")
+	g.Post(testEvent("event1"))
+	g.Post(testEvent("event2"))
 	g.Tick()
 
 	if a != 1 {

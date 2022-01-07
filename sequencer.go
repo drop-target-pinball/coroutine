@@ -22,12 +22,12 @@ type opSleep struct {
 }
 
 type opWaitFor struct {
-	keys []interface{}
+	events []Event
 }
 
 type opWaitForUntil struct {
-	d    time.Duration
-	keys []interface{}
+	d      time.Duration
+	events []Event
 }
 
 func NewSequencer() *Sequencer {
@@ -73,14 +73,14 @@ func (s *Sequencer) Sleep(d time.Duration) {
 	s.ops = append(s.ops, opSleep{d})
 }
 
-func (s *Sequencer) WaitFor(keys ...interface{}) {
+func (s *Sequencer) WaitFor(events ...Event) {
 	s.checkClosed()
-	s.ops = append(s.ops, opWaitFor{keys})
+	s.ops = append(s.ops, opWaitFor{events})
 }
 
-func (s *Sequencer) WaitForUntil(d time.Duration, keys ...interface{}) {
+func (s *Sequencer) WaitForUntil(d time.Duration, events ...Event) {
 	s.checkClosed()
-	s.ops = append(s.ops, opWaitForUntil{d, keys})
+	s.ops = append(s.ops, opWaitForUntil{d, events})
 }
 
 func (s *Sequencer) Run(co *C) bool {
@@ -122,13 +122,13 @@ func (s *Sequencer) Run(co *C) bool {
 		case opFn:
 			op.fn()
 		case opWaitFor:
-			event, done := co.WaitFor(op.keys...)
+			event, done := co.WaitFor(op.events...)
 			if done {
 				return true
 			}
 			s.event = event
 		case opWaitForUntil:
-			event, done := co.WaitForUntil(op.d, op.keys...)
+			event, done := co.WaitForUntil(op.d, op.events...)
 			if done {
 				return true
 			}

@@ -13,18 +13,18 @@ func TestLoop(t *testing.T) {
 	cancel := g.NewCoroutine(func(co *C) {
 		s := NewSequencer()
 
-		s.WaitFor("event")
+		s.WaitFor(testEvent("event"))
 		s.Do(func() { a += 1 })
 		s.Loop()
 		s.Run(co)
 	})
 
-	g.Post("event")
-	g.Post("event")
-	g.Post("event")
+	g.Post(testEvent("event"))
+	g.Post(testEvent("event"))
+	g.Post(testEvent("event"))
 	g.Tick()
 	cancel()
-	g.Post("event")
+	g.Post(testEvent("event"))
 	g.Tick()
 
 	if a != 3 {
@@ -47,16 +47,16 @@ func TestLoopN(t *testing.T) {
 	cancel := g.NewCoroutine(func(co *C) {
 		s := NewSequencer()
 
-		s.WaitFor("event")
+		s.WaitFor(testEvent("event"))
 		s.Do(func() { a += 1 })
 		s.LoopN(2)
 		s.Run(co)
 	})
 
-	g.Post("event")
-	g.Post("event")
-	g.Post("event")
-	g.Post("event")
+	g.Post(testEvent("event"))
+	g.Post(testEvent("event"))
+	g.Post(testEvent("event"))
+	g.Post(testEvent("event"))
 	g.Tick()
 
 	if a != 3 {
@@ -81,18 +81,18 @@ func TestDefer(t *testing.T) {
 		s := NewSequencer()
 
 		s.Defer(func() { b = 1 })
-		s.WaitFor("event")
+		s.WaitFor(testEvent("event"))
 		s.Do(func() { a += 1 })
 		s.Loop()
 		s.Run(co)
 	})
 
-	g.Post("event")
-	g.Post("event")
-	g.Post("event")
+	g.Post(testEvent("event"))
+	g.Post(testEvent("event"))
+	g.Post(testEvent("event"))
 	g.Tick()
 	cancel()
-	g.Post("event")
+	g.Post(testEvent("event"))
 	g.Tick()
 
 	if a != 3 {
@@ -124,7 +124,7 @@ func TestClosed(t *testing.T) {
 
 		s := NewSequencer()
 
-		s.WaitFor("event")
+		s.WaitFor(testEvent("event"))
 		s.Do(func() { a += 1 })
 		s.Loop()
 		s.Do(func() { a = 99 })
