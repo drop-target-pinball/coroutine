@@ -44,7 +44,7 @@ WaitFor(event.LeftRamp)
 AwardScore(1_000_000)
 ```
 
-The latter is easier to read, easier to write, and no long needs the variable, `pos`, to keep track of state.
+The latter is easier to read, easier to write, and no longer needs the variable, `pos`, to keep track of state.
 
 To make this shot sequence into a game mode we should add a timer so the player only has 30 seconds to complete and we should add some audio and video too. Multiple coroutines can be used to separate out this logic so we could have a coroutine each for:
 
@@ -283,6 +283,20 @@ In this specialized version:
 - `Do` now takes an action instead of a function.
 - `Cancel` is now automatically called if the `Do` action is `PlaySpeech`
 - `Sleep` takes an integer for milliseconds instead of a `time.Duration`
+
+And now the initial example in this README can be written as follows:
+
+```go
+func watchRamps(co *coroutine.C) {
+    s := spin.NewSequencer(co)
+
+    s.WaitFor(spin.ShotEvent{ID: jd.ShotLeftRamp})
+    s.WaitFor(spin.ShotEvent{ID: jd.ShotRightRamp})
+    s.WaitFor(spin.ShotEvent{ID: jd.ShotLeftRamp})
+    s.Do(spin.AwardScore{Val: 1_000_000})
+    s.Run()
+}
+```
 
 ## Watchdog
 
