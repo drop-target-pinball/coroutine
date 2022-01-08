@@ -1,12 +1,18 @@
 package coroutine
 
-import "time"
+import (
+	"time"
+)
 
 type Sequencer struct {
 	ops    []interface{}
-	event  interface{}
+	event  Event
 	defers []func()
 	closed bool
+}
+
+type opCancel struct {
+	fn func()
 }
 
 type opFn struct {
@@ -43,6 +49,10 @@ func (s *Sequencer) checkClosed() {
 	}
 }
 
+func (s *Sequencer) Cancel(fn func()) {
+	s.ops = append(s.ops, opCancel{fn})
+}
+
 func (s *Sequencer) Defer(fn func()) {
 	s.defers = append(s.defers, fn)
 }
@@ -64,7 +74,7 @@ func (s *Sequencer) LoopN(n int) {
 	s.closed = true
 }
 
-func (s *Sequencer) Event() interface{} {
+func (s *Sequencer) Event() Event {
 	return s.event
 }
 
@@ -90,6 +100,13 @@ func (s *Sequencer) Run(co *C) bool {
 		}
 	}()
 
+	cancelFuncs := make([]func(), 0)
+	cancel := func() {
+		for _, fn := range cancelFuncs {
+			fn()
+		}
+	}
+
 	pc := 0 // program counter index into ops slice
 	loopN := false
 	n := 0
@@ -99,6 +116,8 @@ func (s *Sequencer) Run(co *C) bool {
 		}
 		operation := s.ops[pc]
 		switch op := operation.(type) {
+		case opCancel:
+			cancelFuncs = append(cancelFuncs, op.fn)
 		case opLoop:
 			if op.n < 0 {
 				pc = 0
@@ -117,21 +136,27 @@ func (s *Sequencer) Run(co *C) bool {
 		case opSleep:
 			s.event = nil
 			if done := co.Sleep(op.d); done {
+				cancel()
 				return true
 			}
+			cancelFuncs = nil
 		case opFn:
 			op.fn()
 		case opWaitFor:
 			event, done := co.WaitFor(op.events...)
 			if done {
+				cancel()
 				return true
 			}
+			cancelFuncs = nil
 			s.event = event
 		case opWaitForUntil:
 			event, done := co.WaitForUntil(op.d, op.events...)
 			if done {
+				cancel()
 				return true
 			}
+			cancelFuncs = nil
 			s.event = event
 		}
 		pc += 1

@@ -24,10 +24,10 @@ func NewWatchdog(timeout time.Duration) *Watchdog {
 			case <-w.done:
 				return
 			case <-time.After(timeout):
-				println("deadlock detected")
+				println("watchdog timer expired")
 				profile := pprof.Lookup("goroutine")
 				profile.WriteTo(os.Stdout, 1)
-				log.Panicf("panicked on deadlock")
+				log.Panicf("watchdog panic")
 			}
 		}
 	}()
