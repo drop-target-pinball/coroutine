@@ -294,13 +294,23 @@ func TestSubCancel(t *testing.T) {
 	g := NewGroup()
 	a := 0
 	b := 0
+	c := 0
 	aDef := 0
 	bDef := 0
+	cDef := 0
 
 	cancel := g.NewCoroutine(func(co *C) {
 		co.New(func(co *C) {
-			s := NewSequencer()
+			co.New(func(co *C) {
+				s := NewSequencer()
+				s.Defer(func() { cDef = 1 })
+				s.Do(func() { c = 1 })
+				s.WaitFor(testEvent("event3"))
+				s.Do(func() { c = 2 })
+				s.Run(co)
+			})
 
+			s := NewSequencer()
 			s.Defer(func() { bDef = 1 })
 			s.Do(func() { b = 1 })
 			s.WaitFor(testEvent("event2"))
@@ -320,6 +330,7 @@ func TestSubCancel(t *testing.T) {
 	cancel()
 	g.Post(testEvent("event1"))
 	g.Post(testEvent("event2"))
+	g.Post(testEvent("event3"))
 	g.Tick()
 
 	if a != 1 {
@@ -328,11 +339,17 @@ func TestSubCancel(t *testing.T) {
 	if b != 1 {
 		t.Errorf("\n have: %v \n want: %v", b, 1)
 	}
+	if c != 1 {
+		t.Errorf("\n have: %v \n want: %v", c, 1)
+	}
 	if aDef != 1 {
 		t.Errorf("\n have: %v \n want: %v", aDef, 1)
 	}
 	if bDef != 1 {
 		t.Errorf("\n have: %v \n want: %v", bDef, 1)
+	}
+	if cDef != 1 {
+		t.Errorf("\n have: %v \n want: %v", cDef, 1)
 	}
 	running := g.running()
 	if running != 0 {

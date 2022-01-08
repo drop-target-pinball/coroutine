@@ -18,7 +18,7 @@ type Group struct {
 
 type C struct {
 	group      *Group
-	children   []CancelFunc
+	children   []*C
 	yield      chan request
 	resume     chan response
 	requesting request
@@ -56,7 +56,7 @@ type CancelFunc func()
 func (g *Group) NewCoroutine(fn func(*C)) CancelFunc {
 	co := &C{
 		group:    g,
-		children: make([]CancelFunc, 0),
+		children: make([]*C, 0),
 		yield:    make(chan request),
 		resume:   make(chan response),
 	}
@@ -65,12 +65,7 @@ func (g *Group) NewCoroutine(fn func(*C)) CancelFunc {
 	cancelFunc := func() {
 		// Cancel the outstanding request. This will get cleaned up on the
 		// next call to Tick
-		co.requesting.cancel = true
-
-		// All children of this coroutine are also canceled
-		for _, cancelChild := range co.children {
-			cancelChild()
-		}
+		co.cancel()
 
 		// Let the coroutines have a chance to clean up
 		g.Tick()
@@ -91,14 +86,12 @@ func (g *Group) NewCoroutine(fn func(*C)) CancelFunc {
 func (c *C) New(fn func(*C)) {
 	co := &C{
 		group:    c.group,
-		children: make([]CancelFunc, 0),
+		children: make([]*C, 0),
 		yield:    make(chan request),
 		resume:   make(chan response),
 	}
 	c.group.add(co)
-	c.children = append(c.children, func() {
-		co.requesting.cancel = true
-	})
+	c.children = append(c.children, co)
 	go func() {
 		fn(co)
 		close(co.yield)
@@ -134,6 +127,13 @@ func (c *C) waitForResume() (Event, bool) {
 		return nil, false
 	}
 	return response.event, false
+}
+
+func (c *C) cancel() {
+	c.requesting.cancel = true
+	for _, co := range c.children {
+		co.cancel()
+	}
 }
 
 func (g *Group) Post(evt Event) {
