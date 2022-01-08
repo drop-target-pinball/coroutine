@@ -93,8 +93,8 @@ A coroutine can yield by calling one of the following functions found in the
 context:
 
 - `Sleep`: resume after a time duration has elapsed
-- `WaitFor`: resume when a specific event is received
-- `WaitForUntil`: resume when a specific event is received or after a time duration has elapsed
+- `WaitFor`: resume when a specific event has been received
+- `WaitForUntil`: resume when a specific event has been received or after a time duration has elapsed
 
 The return values of the yield functions should be checked to see if the
 coroutine has been canceled. If so, it should perform any necessary cleanup
@@ -106,10 +106,9 @@ if done := co.Sleep(5 * time.Second); done {
 }
 ```
 
-In the main application loop, the `Post` function is called to queue an event.
-The `Tick` function should then be called to resume coroutines that are waiting
-for the events that have been queued or to resume coroutines that have timers
-that have expired. For example:
+In the main application loop, call the `Post` function to queue an event.
+The `Tick` function should then be called once for each loop iteration to
+resume coroutines as needed. For example:
 
 ```go
 ticker := time.NewTicker(16670 * time.Microsecond) // 60 fps
@@ -144,8 +143,8 @@ type SwitchEvent struct {
 
 The `ID` identifies the switch, `Released` is `false` if the switch is being
 pressed down and `true` when released, and `Timestamp` records when this event
-was received. When waiting for this event, we are interested matching the `ID`
-and the state of `Released` but not the `Timestamp` since that varies. The
+was received. When waiting for this event, we are interested in matching the
+`ID` and the state of `Released` but not the `Timestamp` since that varies. The
 `Key` function is then:
 
 ```go
@@ -167,9 +166,9 @@ WaitFor(SwitchEvent{ID: "StartButton", Released: true})
 ```
 
 The common case here is to wait for switches being pressed and using `Released`
-as the boolean takes advantage of it being `false` when its omitted. If waiting
-for switches to be released is the common case, using `Pressed` as the boolean
-would be preferred.
+as the boolean takes advantage of it being `false` when it is omitted. If
+waiting for switches to be released is the common case, using `Pressed` as the
+boolean would be preferred.
 
 If all fields are used for the key, the `Key` function can return itself:
 
@@ -186,9 +185,9 @@ also created. This function is called automatically when the coroutine function
 exits or it can be called manually to terminate the coroutine early.
 
 A coroutine has the option of creating another coroutine that shares its
-cancellation function by using `NewCoroutine` in the coroutine context instead
-of `coroutine.New`. In this case, the child coroutine is canceled when the
-parent coroutine is canceled.
+cancellation function by using `New` in the coroutine context instead of
+`coroutine.New`. In this case, the child coroutine is canceled when the parent
+coroutine is canceled.
 
 For example, let's create two coroutines--one will display "A" every second,
 one will display "B" every other second:
@@ -241,7 +240,7 @@ func main() {
 }
 ```
 
-When display exits after printing `"done"`, its cancellation function is
+When `display` exits after printing `"done"`, its cancellation function is
 automatically called. This then causes `displayA` and `displayB` to be
 cancelled. The program then no longer prints any output. Run the example with:
 
