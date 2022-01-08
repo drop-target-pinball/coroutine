@@ -217,11 +217,11 @@ same cancellation function. The coroutine then waits 10 seconds and then exits:
 
 ```go
 func display(co *coroutine.C) {
-	co.New(displayA)
-	co.New(displayB)
+    co.New(displayA)
+    co.New(displayB)
 
-	co.Sleep(10 * time.Second)
-	println("done")
+    co.Sleep(10 * time.Second)
+    println("done")
 }
 ```
 
@@ -229,14 +229,14 @@ Now create a main loop:
 
 ```go
 func main() {
-	ticker := time.NewTicker(16670 * time.Microsecond) // 60 fps
+    ticker := time.NewTicker(16670 * time.Microsecond) // 60 fps
 
     println("start")
-	coroutine.New(display)
-	for {
-		<-ticker.C
-		coroutine.Tick()
-	}
+    coroutine.New(display)
+    for {
+        <-ticker.C
+        coroutine.Tick()
+    }
 }
 ```
 
