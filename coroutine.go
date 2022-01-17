@@ -197,6 +197,13 @@ func (g *Group) Tick() {
 	}
 }
 
+func (g *Group) Stop() {
+	for _, co := range g.active {
+		co.cancel()
+	}
+	g.Tick()
+}
+
 func (g *Group) add(co *C) {
 	// When removing from the list, the value in the slice is simply set
 	// to nil. When adding, iterate to see if there are any open spaces,

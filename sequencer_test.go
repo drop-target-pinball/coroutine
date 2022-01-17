@@ -172,3 +172,50 @@ func TestDoCancel(t *testing.T) {
 	cancel()
 	wd.Stop()
 }
+
+func TestDoRun(t *testing.T) {
+	wd := NewWatchdog(1 * time.Second)
+	g := NewGroup()
+	a := 0
+	b := 0
+
+	cancel := g.NewCoroutine(func(co *C) {
+		s := NewSequencer()
+
+		s.WaitFor(testEvent("event"))
+		s.Do(func() { a = 1 })
+		s.DoRun(func() bool {
+			s := NewSequencer()
+
+			s.WaitFor(testEvent("event"))
+			s.Do(func() { b = 1 })
+			s.WaitFor(testEvent("event"))
+			s.Do(func() { b = 2 })
+			return s.Run(co)
+		})
+		s.Do(func() { a = 2 })
+		s.Run(co)
+	})
+
+	g.Post(testEvent("event"))
+	g.Tick()
+	g.Post(testEvent("event"))
+	g.Tick()
+	cancel()
+	g.Post(testEvent("event"))
+	g.Tick()
+
+	if a != 1 {
+		t.Errorf("\n have: %v \n want: %v", a, 1)
+	}
+	if b != 1 {
+		t.Errorf("\n have: %v \n want: %v", b, 1)
+	}
+	running := g.running()
+	if running != 0 {
+		t.Errorf("\n have: %v \n want: %v", running, 0)
+	}
+
+	cancel()
+	wd.Stop()
+}

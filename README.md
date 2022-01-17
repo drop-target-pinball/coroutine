@@ -4,8 +4,6 @@
 
 A coroutine implementation based on timers and events.
 
-*Work in progress*
-
 ## Overview
 
 This library provides a coroutine implementation that is useful for developing

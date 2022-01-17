@@ -15,8 +15,12 @@ type opCancel struct {
 	fn func()
 }
 
-type opFn struct {
+type opDo struct {
 	fn func()
+}
+
+type opDoRun struct {
+	fn func() bool
 }
 
 type opLoop struct {
@@ -59,7 +63,12 @@ func (s *Sequencer) Defer(fn func()) {
 
 func (s *Sequencer) Do(fn func()) {
 	s.checkClosed()
-	s.ops = append(s.ops, opFn{fn})
+	s.ops = append(s.ops, opDo{fn})
+}
+
+func (s *Sequencer) DoRun(fn func() bool) {
+	s.checkClosed()
+	s.ops = append(s.ops, opDoRun{fn})
 }
 
 func (s *Sequencer) Loop() {
@@ -118,6 +127,16 @@ func (s *Sequencer) Run(co *C) bool {
 		switch op := operation.(type) {
 		case opCancel:
 			cancelFuncs = append(cancelFuncs, op.fn)
+		case opDo:
+			op.fn()
+		case opDoRun:
+			done := op.fn()
+			if done {
+				cancel()
+				return true
+			}
+			cancelFuncs = nil
+			s.event = nil
 		case opLoop:
 			if op.n < 0 {
 				pc = 0
@@ -140,8 +159,6 @@ func (s *Sequencer) Run(co *C) bool {
 				return true
 			}
 			cancelFuncs = nil
-		case opFn:
-			op.fn()
 		case opWaitFor:
 			event, done := co.WaitFor(op.events...)
 			if done {
