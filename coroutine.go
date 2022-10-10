@@ -195,6 +195,18 @@ func (g *Group) Tick() {
 			continue
 		}
 	}
+
+	// Slide active coroutines down
+	i := 0
+	for _, co := range g.active {
+		if co != nil {
+			g.active[i] = co
+			i++
+		}
+	}
+	for ; i < len(g.active); i++ {
+		g.active[i] = nil
+	}
 }
 
 func (g *Group) Stop() {

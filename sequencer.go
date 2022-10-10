@@ -78,9 +78,7 @@ func (s *Sequencer) Loop() {
 }
 
 func (s *Sequencer) LoopN(n int) {
-	s.checkClosed()
 	s.ops = append(s.ops, opLoop{n})
-	s.closed = true
 }
 
 func (s *Sequencer) Event() Event {

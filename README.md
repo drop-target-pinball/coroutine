@@ -22,7 +22,7 @@ var pos = 0
 
 func LeftRamp() {
     if pos == 0 {
-        pos == 1
+        pos = 1
     } else if pos == 2 {
         pos = 0
         AwardScore(1_000_000)
@@ -31,7 +31,7 @@ func LeftRamp() {
 
 func RightRamp() {
     if pos == 1 {
-        pos == 2
+        pos = 2
     }
 }
 
